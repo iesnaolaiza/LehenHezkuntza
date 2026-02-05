@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+  <meta charset="UTF-8" />
+  <title>❌⭕ 3 en Raya Dibertigarria</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Comic Sans MS', Arial, sans-serif;
+      background: linear-gradient(135deg, #fde68a, #93c5fd);
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 1rem;
+      color: #1f2937;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin: 2rem auto;
+    }
+    .cell {
+      background: white;
+      border-radius: 20px;
+      font-size: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+      user-select: none;
+    }
+    .cell:hover {
+      background: #e0f2fe;
+    }
+    .info {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      background: #22c55e;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <h1>❌⭕ 3 en Raya</h1>
+  <p class="info" id="status">❌-ren txanda</p>
+
+  <div class="board" id="board"></div>
+
+  <button onclick="resetGame()">🔄 Berriro jolastu</button>
+
+  <script>
+    const board = document.getElementById('board');
+    const statusText = document.getElementById('status');
+
+    let currentPlayer = '❌';
+    let gameActive = true;
+    let cells = Array(9).fill('');
+
+    const winConditions = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    function createBoard() {
+      board.innerHTML = '';
+      cells.forEach((cell, index) => {
+        const div = document.createElement('div');
+        div.classList.add('cell');
+        div.addEventListener('click', () => handleCellClick(index));
+        div.textContent = cell;
+        board.appendChild(div);
+      });
+    }
+
+    function handleCellClick(index) {
+      if (!gameActive || cells[index] !== '') return;
+
+      cells[index] = currentPlayer;
+      createBoard();
+      checkResult();
+    }
+
+    function checkResult() {
+      let won = false;
+      for (let condition of winConditions) {
+        const [a, b, c] = condition;
+        if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+          won = true;
+          break;
+        }
+      }
+
+      if (won) {
+        statusText.textContent = currentPlayer + ' irabazi du! 🎉';
+        gameActive = false;
+        return;
+      }
+
+      if (!cells.includes('')) {
+        statusText.textContent = 'Berdinketa 😄';
+        gameActive = false;
+        return;
+      }
+
+      currentPlayer = currentPlayer === '❌' ? '⭕' : '❌';
+      statusText.textContent = currentPlayer + '-ren txanda';
+    }
+
+    function resetGame() {
+      currentPlayer = '❌';
+      gameActive = true;
+      cells = Array(9).fill('');
+      statusText.textContent = '❌-ren txanda';
+      createBoard();
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>

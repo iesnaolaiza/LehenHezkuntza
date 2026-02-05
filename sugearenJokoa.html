@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+  <meta charset="UTF-8" />
+  <title>🐍 Snake Dibertigarria</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+      background-image: url('https://lh3.googleusercontent.com/pw/AP1GczMdwrEKhG7PLjsnIt9iqVipPMHqFLF8Bg-OQt4taJ10kW9CF_zAu61pcsKzQfUvEelHOTRZ1Jkhy-EdZ3DLA-5pjyZuFAh9XttohRrbdd50sBM7pG7f0HWJt9Qm34h8phY66dS1WXdveBcfcloV88dUhg=w1391-h1043-s-no-gm?authuser=0');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      font-family: 'Comic Sans MS', Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px; /* leave margins */
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* remove page scrollbar */
+    }
+    h1 {
+      margin-top: 1rem;
+      color: #1f2937;
+    }
+    canvas {
+      background: rgba(255,255,255,0.85);
+      border-radius: 16px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      margin-top: 1rem;
+      max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 160px);
+      width: auto;
+      height: auto;
+    .info {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+    }
+    button {
+      margin-top: 1rem;
+      background: #22c55e;
+      color: white;
+      border: none;
+      border-radius: 999px;
+      padding: 0.7rem 1.4rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐍 Snake Dibertigarria</h1>
+  <p>Jan sagarra 🍎 eta hazi!</p>
+
+  <canvas id="game" width="600" height="600"></canvas>
+
+  <div class="info">
+    <p>⬆️⬇️⬅️➡️ geziekin mugitu</p>
+    
+    <p>Puntuak: <span id="score">0</span></p>
+  </div>
+
+  <button onclick="restartGame()">🔄 Berriro jolastu</button>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const box = 20;
+    let cols, rows;
+    let snake;
+    let direction;
+    let food;
+    let score;
+    let game;
+    let speed = 400; // milliseconds between frames (lower = faster)
+    const baseSpeed = speed;
+    const minSpeed = 50;
+    let rapidPressCount = 0;
+    let lastDirPressTime = 0;
+    let rapidResetTimer = null;
+
+    // speed remains a variable controlled in code (no UI slider)
+
+    // Head image handling: use local image file in same folder as this HTML
+    const headImg = new Image();
+    let headImgLoaded = false;
+    const localName = encodeURI('AneMiren.png');
+    headImg.src = localName;
+    headImg.onload = () => { headImgLoaded = true; };
+    headImg.onerror = () => {
+      // fallback SVG
+      const defaultSvg = `
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'>
+          <rect width='100' height='100' rx='12' fill='#ffe0b2'/>
+          <circle cx='50' cy='36' r='18' fill='#fff3e0'/>
+          <circle cx='38' cy='34' r='3.5' fill='#333'/>
+          <circle cx='62' cy='34' r='3.5' fill='#333'/>
+          <path d='M36 56 q14 12 28 0' stroke='#333' stroke-width='3' fill='none' stroke-linecap='round'/>
+        </svg>`;
+      headImg.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(defaultSvg);
+      headImg.onload = () => { headImgLoaded = true; };
+    };
+
+      // Audio: use online audio files (fallback to generated sounds via WebAudio)
+      let startAudio = new Audio('https://orangefreesounds.com/wp-content/uploads/2023/02/Kids-game-music-loop.mp3');
+      startAudio.loop = true;
+      let errorAudio = new Audio('https://orangefreesounds.com/wp-content/uploads/2022/08/Game-show-fail-melody-sound-effect.mp3');
+      let usingGeneratedStart = false;
+      let usingGeneratedError = false;
+      startAudio.onerror = () => { startAudio = null; usingGeneratedStart = true; };
+      errorAudio.onerror = () => { errorAudio = null; usingGeneratedError = true; };
+
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = AudioCtx ? new AudioCtx() : null;
+
+      function playGeneratedJingle() {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const notes = [523, 659, 783, 1046]; // C5,E5,G5,C6
+        const dur = 0.25;
+        let t = now;
+        notes.forEach((f, i) => {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = f;
+          g.gain.value = 0.08;
+          osc.connect(g); g.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + dur);
+          t += dur;
+        });
+        // schedule a loop by re-calling after full length
+        return setTimeout(() => { if (game) playGeneratedJingle(); }, notes.length * dur * 1000);
+      }
+      let jingleTimer = null;
+
+      function playGeneratedError() {
+        if (!audioCtx) return;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(200, audioCtx.currentTime);
+        g.gain.value = 0.12;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start();
+        o.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+        setTimeout(() => { o.stop(); }, 450);
+      }
+
+      function startMusic() {
+        if (startAudio) {
+          const p = startAudio.play();
+          if (p && p.catch) p.catch(() => {});
+        } else if (usingGeneratedStart) {
+          if (jingleTimer) clearTimeout(jingleTimer);
+          jingleTimer = playGeneratedJingle();
+        }
+      }
+
+      function stopMusic() {
+        if (startAudio) try { startAudio.pause(); startAudio.currentTime = 0; } catch (e) {}
+        if (jingleTimer) { clearTimeout(jingleTimer); jingleTimer = null; }
+      }
+
+      function playErrorSound() {
+        if (errorAudio) {
+          try { errorAudio.currentTime = 0; errorAudio.play(); } catch (e) {}
+        } else {
+          playGeneratedError();
+        }
+      }
+
+      let musicStarted = false;
+
+    function startGame() {
+      snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
+      direction = 'RIGHT';
+      food = randomFood();
+      score = 0;
+      document.getElementById('score').textContent = score;
+      clearInterval(game);
+      game = setInterval(draw, speed);
+      // try to start music when game starts — will only play after a user gesture
+      if (!musicStarted) {
+        // some browsers require resuming audio context on user gesture
+        if (audioCtx && audioCtx.state === 'suspended') {
+          try { audioCtx.resume(); } catch (e) {}
+        }
+        startMusic();
+        musicStarted = true;
+      }
+    }
+
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * cols) * box,
+        y: Math.floor(Math.random() * rows) * box
+      };
+    }
+
+    document.addEventListener('keydown', event => {
+      const now = Date.now();
+      // ensure audio context resumed and start music on first user interaction
+      if (!musicStarted) {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          try { audioCtx.resume(); } catch (e) {}
+        }
+        startMusic();
+        musicStarted = true;
+      }
+      if (event.key.startsWith('Arrow')) {
+        // Count rapid consecutive presses to speed up the snake
+        if (now - lastDirPressTime < 300) {
+          rapidPressCount++;
+        } else {
+          rapidPressCount = 1;
+        }
+        lastDirPressTime = now;
+        if (rapidResetTimer) clearTimeout(rapidResetTimer);
+        rapidResetTimer = setTimeout(() => {
+          rapidPressCount = 0;
+          speed = baseSpeed;
+          if (game) { clearInterval(game); game = setInterval(draw, speed); }
+        }, 800);
+
+        const newSpeed = Math.max(minSpeed, baseSpeed - rapidPressCount * 40);
+        if (newSpeed !== speed) {
+          speed = newSpeed;
+          if (game) { clearInterval(game); game = setInterval(draw, speed); }
+        }
+      }
+
+      if (event.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+      if (event.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+      if (event.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+      if (event.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+    });
+
+    // Resize canvas to fit viewport height (leave margins) and recompute grid
+    function resizeCanvas() {
+      const vMargin = 160; // total vertical margin to leave
+      const hMargin = 40;  // horizontal margin
+      const availableH = Math.max(200, window.innerHeight - vMargin);
+      const availableW = Math.max(200, window.innerWidth - hMargin);
+      // prefer using available height but limit width to avoid overflow
+      const useH = availableH;
+      const useW = Math.min(availableW, useH);
+      canvas.width = Math.floor(useW);
+      canvas.height = Math.floor(useH);
+      cols = Math.max(2, Math.floor(canvas.width / box));
+      rows = Math.max(2, Math.floor(canvas.height / box));
+      // restart game so positions/grid align with new size
+      if (game) { clearInterval(game); }
+      startGame();
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Snake
+      // head is drawn larger and extending in the moving direction so the body starts at its rear edge
+      snake.forEach((part, index) => {
+        if (index === 0) {
+          const headScale = 3; // how many times bigger than a tail cell
+          const headSize = box * headScale;
+          let hx = part.x;
+          let hy = part.y;
+          // compute head draw position depending on direction so it extends forward
+          if (direction === 'RIGHT') {
+            hx = part.x;
+            hy = part.y - (headSize - box) / 2;
+          } else if (direction === 'LEFT') {
+            hx = part.x - (headSize - box);
+            hy = part.y - (headSize - box) / 2;
+          } else if (direction === 'UP') {
+            hx = part.x - (headSize - box) / 2;
+            hy = part.y - (headSize - box);
+          } else if (direction === 'DOWN') {
+            hx = part.x - (headSize - box) / 2;
+            hy = part.y;
+          } else {
+            // default: center
+            hx = part.x - (headSize - box) / 2;
+            hy = part.y - (headSize - box) / 2;
+          }
+          if (headImgLoaded) {
+            ctx.drawImage(headImg, hx, hy, headSize, headSize);
+          } else {
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(hx, hy, headSize, headSize);
+          }
+        } else {
+          ctx.fillStyle = '#86efac';
+          ctx.fillRect(part.x, part.y, box, box);
+        }
+      });
+
+      // Food
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(food.x, food.y, box, box);
+
+      // Move
+      let head = { ...snake[0] };
+      if (direction === 'LEFT') head.x -= box;
+      if (direction === 'UP') head.y -= box;
+      if (direction === 'RIGHT') head.x += box;
+      if (direction === 'DOWN') head.y += box;
+
+      // Eat food — consider any overlap between the (larger) head rectangle and the food rectangle
+      const headPart = snake[0];
+      const headScale = 3;
+      const headSize = box * headScale;
+      let headRect = { left: headPart.x, top: headPart.y, right: headPart.x + box, bottom: headPart.y + box };
+      // compute actual head drawing rect consistent with drawing logic above
+      if (direction === 'RIGHT') {
+        headRect.left = headPart.x;
+        headRect.top = headPart.y - (headSize - box) / 2;
+        headRect.right = headRect.left + headSize;
+        headRect.bottom = headRect.top + headSize;
+      } else if (direction === 'LEFT') {
+        headRect.left = headPart.x - (headSize - box);
+        headRect.top = headPart.y - (headSize - box) / 2;
+        headRect.right = headRect.left + headSize;
+        headRect.bottom = headRect.top + headSize;
+      } else if (direction === 'UP') {
+        headRect.left = headPart.x - (headSize - box) / 2;
+        headRect.top = headPart.y - (headSize - box);
+        headRect.right = headRect.left + headSize;
+        headRect.bottom = headRect.top + headSize;
+      } else if (direction === 'DOWN') {
+        headRect.left = headPart.x - (headSize - box) / 2;
+        headRect.top = headPart.y;
+        headRect.right = headRect.left + headSize;
+        headRect.bottom = headRect.top + headSize;
+      }
+      const foodRect = { left: food.x, top: food.y, right: food.x + box, bottom: food.y + box };
+      // consider touching edges as eating: use strict < / > so equality counts as intersection
+      const intersects = !(headRect.right < foodRect.left || headRect.left > foodRect.right || headRect.bottom < foodRect.top || headRect.top > foodRect.bottom);
+      if (intersects) {
+        score++;
+        document.getElementById('score').textContent = score;
+        food = randomFood();
+      } else {
+        snake.pop();
+      }
+
+      // Collision
+        if (head.x < 0 || head.y < 0 ||
+          head.x >= canvas.width || head.y >= canvas.height ||
+          snake.some(part => part.x === head.x && part.y === head.y)
+        ) {
+          clearInterval(game);
+          // stop music and play error sound
+          stopMusic();
+          playErrorSound();
+          alert('Amaiera! 🐍\nPuntuak: ' + score);
+          return;
+        }
+
+      snake.unshift(head);
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    // initialize size and start
+    resizeCanvas();
+  </script>
+</body>
+</html>
