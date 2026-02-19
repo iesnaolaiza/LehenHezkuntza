@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urkatuaren Jolasa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hangman-drawing {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .hangman-drawing pre {
+            font-size: 1.8rem;
+            line-height: 1.3;
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            color: #2c3e50;
+            font-weight: bold;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border: 3px solid #ff6b9d;
+        }
+
+        .game-info {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .word-container {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .letter-box {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: white;
+        }
+
+        .letters-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .letter-button {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+
+        .letter-button:hover:not(:disabled) {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .letter-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .message {
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 1.3rem;
+            font-weight: bold;
+            min-height: 3rem;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .attempts {
+            text-align: center;
+            margin: 1rem 0;
+            font-size: 1.2rem;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        .file-input-container {
+            display: none;
+        }
+
+        .file-label {
+            display: none;
+        }
+
+        .file-label:hover {
+            background: #218838;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .stats {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .word-list {
+            display: none;
+        }
+
+        .word-list h3 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .word-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            margin: 0.2rem;
+            background: #667eea;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .letter-box {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+            
+            .letter-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 URKATUAREN JOLASA</h1>
+        
+        <div class="game-container">
+            <div class="hangman-drawing">
+                <pre id="hangman-drawing">
+    +---+
+    |   |
+        |
+        |
+        |
+        |
+    =========
+                </pre>
+            </div>
+            
+            <div class="game-info">
+                <div class="word-container" id="word-container"></div>
+                
+                <div class="letters-container" id="letters-container"></div>
+                
+                <div class="message" id="message"></div>
+                <div class="attempts" id="attempts">Saiakerak: 6</div>
+                
+                <div class="stats" id="stats">
+                    Erabilgarri dauden hitzak: <span id="word-count">0</span>
+                </div>
+                
+                <div class="controls">
+                    <button id="new-game" class="btn">🎲 Partida Berria</button>
+                </div>
+                
+                <div class="file-input-container">
+                    <label for="file-input" class="file-label">📁 Cargar archivo de palabras</label>
+                    <input type="file" id="file-input" accept=".txt,.text">
+                </div>
+                
+                <div class="word-list" id="word-list">
+                    <h3>📚 Palabras cargadas:</h3>
+                    <div id="words-display"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de palabras
+        const palabrasData = {
+            "palabras": [
+                "DENIS",
+                "IURI",
+                "LUKA",
+                "EKAI",
+                "NOA",
+                "NOAH",
+                "IBRAHIM",
+                "XIMUN",
+                "KARLA",
+                "ANEMIREN"
+            ]
+        };
+
+        class Ahorcado {
+            constructor() {
+                this.palabras = [];
+                this.palabraSecreta = '';
+                this.letrasAdivinadas = [];
+                this.intentosRestantes = 6;
+                this.juegoActivo = true;
+                this.letrasUsadas = [];
+                
+                this.cargarElementosDOM();
+                this.agregarEventListeners();
+                this.cargarPalabrasEjemplo();
+            }
+            
+            cargarElementosDOM() {
+                this.wordContainer = document.getElementById('word-container');
+                this.lettersContainer = document.getElementById('letters-container');
+                this.messageElement = document.getElementById('message');
+                this.attemptsElement = document.getElementById('attempts');
+                this.hangmanDrawing = document.getElementById('hangman-drawing');
+                this.newGameBtn = document.getElementById('new-game');
+                this.fileInput = document.getElementById('file-input');
+                this.wordCountSpan = document.getElementById('word-count');
+                this.wordsDisplay = document.getElementById('words-display');
+            }
+            
+            agregarEventListeners() {
+                this.newGameBtn.addEventListener('click', () => this.nuevaPartida());
+            }
+            
+            async cargarPalabrasEjemplo() {
+                try {
+                    // Cargar desde la variable de datos incrustada
+                    this.palabras = palabrasData.palabras;
+                    // Filtrar palabras vacías
+                    this.palabras = this.palabras.filter(p => p && p.length > 0);
+                    this.actualizarListaPalabras();
+                    this.nuevaPartida();
+                } catch (error) {
+                    console.error('Error cargando palabras:', error);
+                    // Palabras de fallback si hay error
+                    this.palabras = [
+                        'MURCIELAGO', 'ELEFANTE', 'JIRAFA', 'COCODRILO', 
+                        'MARIPOSA', 'ORDENADOR', 'PROGRAMACION', 'AHORCADO',
+                        'BIBLIOTECA', 'ESCOBA', 'VENTANA', 'CABEZA',
+                        'ESTRELLA', 'CAMISETA', 'ZAPATO', 'CERDO'
+                    ];
+                    this.actualizarListaPalabras();
+                    this.nuevaPartida();
+                }
+            }
+            
+            nuevaPartida() {
+                if (this.palabras.length === 0) {
+                    this.mostrarMensaje('⚠️ No hay palabras cargadas', 'error');
+                    return;
+                }
+                
+                // Seleccionar palabra aleatoria
+                this.palabraSecreta = this.palabras[Math.floor(Math.random() * this.palabras.length)];
+                this.letrasAdivinadas = [];
+                this.intentosRestantes = 6;
+                this.juegoActivo = true;
+                this.letrasUsadas = [];
+                
+                this.actualizarDisplay();
+                this.crearBotonesLetras();
+                this.mostrarMensaje('');
+                this.actualizarDibujo();
+            }
+            
+            crearBotonesLetras() {
+                const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÑ';
+                this.lettersContainer.innerHTML = '';
+                
+                for (let letra of letras) {
+                    const button = document.createElement('button');
+                    button.classList.add('letter-button');
+                    button.textContent = letra;
+                    button.addEventListener('click', () => this.adivinarLetra(letra));
+                    this.lettersContainer.appendChild(button);
+                }
+            }
+            
+            adivinarLetra(letra) {
+                if (!this.juegoActivo || this.letrasUsadas.includes(letra)) return;
+                
+                this.letrasUsadas.push(letra);
+                const button = Array.from(this.lettersContainer.children).find(b => b.textContent === letra);
+                if (button) button.disabled = true;
+                
+                if (this.palabraSecreta.includes(letra)) {
+                    this.letrasAdivinadas.push(letra);
+                    this.verificarVictoria();
+                } else {
+                    this.intentosRestantes--;
+                    this.actualizarDibujo();
+                    this.verificarDerrota();
+                }
+                
+                this.actualizarDisplay();
+            }
+            
+            actualizarDisplay() {
+                // Mostrar palabra con espacios
+                let displayWord = '';
+                for (let letra of this.palabraSecreta) {
+                    if (this.letrasAdivinadas.includes(letra)) {
+                        displayWord += letra;
+                    } else {
+                        displayWord += '_';
+                    }
+                }
+                
+                this.wordContainer.innerHTML = '';
+                for (let letra of displayWord) {
+                    const box = document.createElement('div');
+                    box.classList.add('letter-box');
+                    box.textContent = letra;
+                    this.wordContainer.appendChild(box);
+                }
+                
+                this.attemptsElement.textContent = `Saiakera kopurua: ${this.intentosRestantes}`;
+            }
+            
+            actualizarDibujo() {
+                const dibujos = [
+                    `    �───⭐
+    ║   ║
+    ║   😄
+    ║   
+    ║   
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😊
+    ║   
+    ║   
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😐
+    ║   |
+    ║   
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😕
+    ║  /|
+    ║   
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😟
+    ║  /|\\
+    ║   
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😢
+    ║  /|\\
+    ║  /
+    ║   
+    ║   
+    🌲🌲🌲🌲`,
+                    `    🏰───⭐
+    ║   ║
+    ║   😭
+    ║  /|\\
+    ║  / \\
+    ║   
+    ║   
+    🌲🌲🌲🌲`
+                ];
+                
+                this.hangmanDrawing.textContent = dibujos[6 - this.intentosRestantes] || dibujos[0];
+            }
+            
+            verificarVictoria() {
+                const ganado = this.palabraSecreta.split('').every(letra => 
+                    this.letrasAdivinadas.includes(letra)
+                );
+                
+                if (ganado) {
+                    this.juegoActivo = false;
+                    this.mostrarMensaje('🎉 Zorionak! Irabazi duzu', 'success');
+                    this.deshabilitarBotones();
+                }
+            }
+            
+            verificarDerrota() {
+                if (this.intentosRestantes <= 0) {
+                    this.juegoActivo = false;
+                    this.mostrarMensaje(`😢 Galdu duzu! Izena: ${this.palabraSecreta}`, 'error');
+                    this.deshabilitarBotones();
+                }
+            }
+            
+            deshabilitarBotones() {
+                const botones = this.lettersContainer.children;
+                for (let boton of botones) {
+                    boton.disabled = true;
+                }
+            }
+            
+            mostrarMensaje(mensaje, tipo) {
+                this.messageElement.textContent = mensaje;
+                this.messageElement.className = 'message';
+                if (tipo) {
+                    this.messageElement.classList.add(tipo);
+                }
+            }
+            
+            procesarArchivo(event) {
+                // Método eliminado - las palabras se cargan desde palabras.json
+            }
+            
+            actualizarListaPalabras() {
+                this.wordCountSpan.textContent = this.palabras.length;
+                
+                // Mostrar algunas palabras de ejemplo
+                const palabrasMostrar = this.palabras.slice(0, 15);
+                this.wordsDisplay.innerHTML = '';
+                
+                palabrasMostrar.forEach(palabra => {
+                    const tag = document.createElement('span');
+                    tag.classList.add('word-tag');
+                    tag.textContent = palabra;
+                    this.wordsDisplay.appendChild(tag);
+                });
+                
+                if (this.palabras.length > 15) {
+                    const mas = document.createElement('span');
+                    mas.classList.add('word-tag');
+                    mas.textContent = `+${this.palabras.length - 15} más`;
+                    this.wordsDisplay.appendChild(mas);
+                }
+            }
+        }
+
+        // Iniciar el juego cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            new Ahorcado();
+        });
+    </script>
+</body>
+</html>
