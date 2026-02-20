@@ -70,9 +70,16 @@
 
         .word-container {
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .word-line {
+            display: flex;
             justify-content: center;
             gap: 0.5rem;
-            margin: 2rem 0;
             flex-wrap: wrap;
         }
 
@@ -291,16 +298,26 @@
         // Datos de palabras
         const palabrasData = {
             "palabras": [
-                "DENIS",
-                "IURI",
-                "LUKA",
-                "EKAI",
-                "NOA",
-                "NOAH",
-                "IBRAHIM",
-                "XIMUN",
-                "KARLA",
-                "ANEMIREN"
+                "DENIS ESNAOLA",
+                "IURI AIZPURUA",
+                "LUKA ETXANIZ",
+                "NOA ARZAMENDI",
+                "NOAH BENEITEZ",
+                "IBRAHIM HAMIDA",
+                "XIMUN GERENABARRENA",
+                "KARLA ETXEBARRIA",
+                "ANE MIREN EGAÑA",
+                "YASSER BENTALEB",
+                "ION BOUZO",
+                "FATMA ZAHARA",
+                "ELEN GARMENDIA",
+                "MAIA JUARISTI",
+                "MATTIN LARRAÑAGA",
+                "JUNE SUDUPE",
+                "HOORIA YOUSAF",
+                "EKAI ZABALETA",
+                "LUR ZABALZA",
+                "LUCA JUAREZ"
             ]
         };
 
@@ -408,23 +425,32 @@
             }
             
             actualizarDisplay() {
-                // Mostrar palabra con espacios
-                let displayWord = '';
-                for (let letra of this.palabraSecreta) {
-                    if (this.letrasAdivinadas.includes(letra)) {
-                        displayWord += letra;
-                    } else {
-                        displayWord += '_';
-                    }
-                }
+                // Dividir la palabra secreta en palabras individuales
+                const palabras = this.palabraSecreta.split(' ');
                 
                 this.wordContainer.innerHTML = '';
-                for (let letra of displayWord) {
-                    const box = document.createElement('div');
-                    box.classList.add('letter-box');
-                    box.textContent = letra;
-                    this.wordContainer.appendChild(box);
-                }
+                
+                // Crear una línea para cada palabra
+                palabras.forEach(palabra => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.classList.add('word-line');
+                    
+                    // Mostrar cada letra de la palabra
+                    for (let letra of palabra) {
+                        const box = document.createElement('div');
+                        box.classList.add('letter-box');
+                        
+                        if (this.letrasAdivinadas.includes(letra)) {
+                            box.textContent = letra;
+                        } else {
+                            box.textContent = '_';
+                        }
+                        
+                        lineDiv.appendChild(box);
+                    }
+                    
+                    this.wordContainer.appendChild(lineDiv);
+                });
                 
                 this.attemptsElement.textContent = `Saiakera kopurua: ${this.intentosRestantes}`;
             }
@@ -494,7 +520,7 @@
             
             verificarVictoria() {
                 const ganado = this.palabraSecreta.split('').every(letra => 
-                    this.letrasAdivinadas.includes(letra)
+                    letra === ' ' || this.letrasAdivinadas.includes(letra)
                 );
                 
                 if (ganado) {

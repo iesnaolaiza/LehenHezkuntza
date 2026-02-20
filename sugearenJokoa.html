@@ -7,21 +7,54 @@
   <style>
     body {
       background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
-      background-image: url('https://lh3.googleusercontent.com/pw/AP1GczMdwrEKhG7PLjsnIt9iqVipPMHqFLF8Bg-OQt4taJ10kW9CF_zAu61pcsKzQfUvEelHOTRZ1Jkhy-EdZ3DLA-5pjyZuFAh9XttohRrbdd50sBM7pG7f0HWJt9Qm34h8phY66dS1WXdveBcfcloV88dUhg=w1391-h1043-s-no-gm?authuser=0');
+      background-image: url('Denis6.jpg');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       font-family: 'Comic Sans MS', Arial, sans-serif;
       text-align: center;
       margin: 0;
-      padding: 20px; /* leave margins */
+      padding: 12px;
       height: 100vh;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      justify-content: center;
+      overflow: hidden; /* remove page scrollbar */
+    }
+    .layout {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .left-panel {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden; /* remove page scrollbar */
+      gap: 10px;
+      min-width: 180px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      padding: 14px 12px;
+    }
+    .game-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    body.blink {
+      animation: failBlink 0.2s 6;
+    }
+    @keyframes failBlink {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(2.2); }
     }
     h1 {
       margin-top: 1rem;
@@ -32,46 +65,119 @@
       border-radius: 16px;
       box-shadow: 0 10px 20px rgba(0,0,0,0.2);
       margin-top: 1rem;
-      max-width: calc(100vw - 40px);
-      max-height: calc(100vh - 160px);
+      max-width: calc(100vw - 260px);
+      max-height: calc(100vh - 110px);
       width: auto;
       height: auto;
+    }
     .info {
       margin-top: 1rem;
       font-size: 1.1rem;
     }
+    .score-line {
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 0.6rem 0 0 0;
+      color: #111827;
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.7);
+    }
     button {
       margin-top: 1rem;
-      background: #22c55e;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
       color: white;
-      border: none;
+      border: 2px solid rgba(255,255,255,0.75);
       border-radius: 999px;
-      padding: 0.7rem 1.4rem;
+      padding: 0.75rem 1.45rem;
       font-size: 1rem;
       cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.22);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
     }
     button:hover {
-      background: #16a34a;
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+      box-shadow: 0 9px 18px rgba(0,0,0,0.28);
+    }
+    .controls {
+      margin-top: 0;
+      display: inline-grid;
+      grid-template-columns: repeat(3, 52px);
+      gap: 8px;
+      align-items: center;
+      justify-items: center;
+    }
+    .controls button {
+      width: 52px;
+      height: 52px;
+      margin-top: 0;
+      padding: 0;
+      border-radius: 12px;
+      font-size: 1.3rem;
+      line-height: 1;
+      background: linear-gradient(180deg, #34d399, #10b981);
+    }
+    .controls .empty {
+      visibility: hidden;
+    }
+    .final-score-left {
+      display: none;
+      margin: 0.4rem 0 0.2rem 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 16px;
+      padding: 0.7rem 0.85rem;
+      color: #111827;
+      font-size: 1.45rem;
+      font-weight: bold;
+    }
+    .final-score-left.show {
+      display: block;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        flex-direction: column-reverse;
+        gap: 12px;
+      }
+      .left-panel {
+        min-width: auto;
+      }
+      canvas {
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 260px);
+      }
     }
   </style>
 </head>
 <body>
-  <h1>🐍 Snake Dibertigarria</h1>
-  <p>Jan sagarra 🍎 eta hazi!</p>
+  <div class="layout">
+    <aside class="left-panel">
+      <div class="controls" aria-label="Norabide kontrolak">
+        <span class="empty">.</span>
+        <button type="button" onclick="setDirectionFromInput('UP')">⬆️</button>
+        <span class="empty">.</span>
+        <button type="button" onclick="setDirectionFromInput('LEFT')">⬅️</button>
+        <button type="button" onclick="setDirectionFromInput('DOWN')">⬇️</button>
+        <button type="button" onclick="setDirectionFromInput('RIGHT')">➡️</button>
+      </div>
+      <div id="leftFinalScore" class="final-score-left">Puntuak: <span id="leftFinalScoreValue">0</span></div>
+      <button type="button" onclick="restartGame()">🔄 Berriro jolastu</button>
+    </aside>
 
-  <canvas id="game" width="600" height="600"></canvas>
+    <main class="game-panel">
+      <canvas id="game" width="600" height="600"></canvas>
 
-  <div class="info">
-    <p>⬆️⬇️⬅️➡️ geziekin mugitu</p>
-    
-    <p>Puntuak: <span id="score">0</span></p>
+      <div class="info">
+        <p class="score-line"> <span id="score"></span></p>
+      </div>
+    </main>
   </div>
-
-  <button onclick="restartGame()">🔄 Berriro jolastu</button>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    const leftFinalScoreEl = document.getElementById('leftFinalScore');
+    const leftFinalScoreValueEl = document.getElementById('leftFinalScoreValue');
 
     const box = 20;
     let cols, rows;
@@ -86,6 +192,7 @@
     let rapidPressCount = 0;
     let lastDirPressTime = 0;
     let rapidResetTimer = null;
+    let growthPending = 0;
 
     // speed remains a variable controlled in code (no UI slider)
 
@@ -181,17 +288,8 @@
 
       let musicStarted = false;
 
-    function startGame() {
-      snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
-      direction = 'RIGHT';
-      food = randomFood();
-      score = 0;
-      document.getElementById('score').textContent = score;
-      clearInterval(game);
-      game = setInterval(draw, speed);
-      // try to start music when game starts — will only play after a user gesture
+    function enableAudioFromGesture() {
       if (!musicStarted) {
-        // some browsers require resuming audio context on user gesture
         if (audioCtx && audioCtx.state === 'suspended') {
           try { audioCtx.resume(); } catch (e) {}
         }
@@ -200,25 +298,10 @@
       }
     }
 
-    function randomFood() {
-      return {
-        x: Math.floor(Math.random() * cols) * box,
-        y: Math.floor(Math.random() * rows) * box
-      };
-    }
-
-    document.addEventListener('keydown', event => {
-      const now = Date.now();
-      // ensure audio context resumed and start music on first user interaction
-      if (!musicStarted) {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          try { audioCtx.resume(); } catch (e) {}
-        }
-        startMusic();
-        musicStarted = true;
-      }
-      if (event.key.startsWith('Arrow')) {
-        // Count rapid consecutive presses to speed up the snake
+    function setDirectionFromInput(nextDirection, fromKeyboard = false) {
+      enableAudioFromGesture();
+      if (fromKeyboard) {
+        const now = Date.now();
         if (now - lastDirPressTime < 300) {
           rapidPressCount++;
         } else {
@@ -239,23 +322,66 @@
         }
       }
 
-      if (event.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
-      if (event.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
-      if (event.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
-      if (event.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+      if (nextDirection === 'LEFT' && direction !== 'RIGHT') direction = 'LEFT';
+      if (nextDirection === 'UP' && direction !== 'DOWN') direction = 'UP';
+      if (nextDirection === 'RIGHT' && direction !== 'LEFT') direction = 'RIGHT';
+      if (nextDirection === 'DOWN' && direction !== 'UP') direction = 'DOWN';
+    }
+
+    function showFinalScore() {
+      leftFinalScoreValueEl.textContent = score;
+      leftFinalScoreEl.classList.add('show');
+    }
+
+    function triggerFailEffectAndShowScore() {
+      document.body.classList.add('blink');
+      setTimeout(() => {
+        document.body.classList.remove('blink');
+        showFinalScore();
+      }, 1200);
+    }
+
+    function startGame() {
+      snake = [{ x: Math.floor(cols / 2) * box, y: Math.floor(rows / 2) * box }];
+      direction = 'RIGHT';
+      food = randomFood();
+      score = 0;
+      growthPending = 0;
+      leftFinalScoreEl.classList.remove('show');
+      document.body.classList.remove('blink');
+      document.getElementById('score').textContent = score;
+      clearInterval(game);
+      game = setInterval(draw, speed);
+      // try to start music when game starts — will only play after a user gesture
+      enableAudioFromGesture();
+    }
+
+    function randomFood() {
+      return {
+        x: Math.floor(Math.random() * cols) * box,
+        y: Math.floor(Math.random() * rows) * box
+      };
+    }
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft') setDirectionFromInput('LEFT', true);
+      if (event.key === 'ArrowUp') setDirectionFromInput('UP', true);
+      if (event.key === 'ArrowRight') setDirectionFromInput('RIGHT', true);
+      if (event.key === 'ArrowDown') setDirectionFromInput('DOWN', true);
     });
 
     // Resize canvas to fit viewport height (leave margins) and recompute grid
     function resizeCanvas() {
-      const vMargin = 160; // total vertical margin to leave
-      const hMargin = 40;  // horizontal margin
+      const isStacked = window.matchMedia('(max-width: 900px)').matches;
+      const leftPanel = document.querySelector('.left-panel');
+      const leftPanelSpace = isStacked ? 24 : ((leftPanel ? leftPanel.offsetWidth : 190) + 70);
+      const vMargin = isStacked ? 250 : 100;
+      const hMargin = isStacked ? 24 : leftPanelSpace;
       const availableH = Math.max(200, window.innerHeight - vMargin);
       const availableW = Math.max(200, window.innerWidth - hMargin);
-      // prefer using available height but limit width to avoid overflow
-      const useH = availableH;
-      const useW = Math.min(availableW, useH);
-      canvas.width = Math.floor(useW);
-      canvas.height = Math.floor(useH);
+      const useSize = Math.floor(Math.min(availableW, availableH));
+      canvas.width = useSize;
+      canvas.height = useSize;
       cols = Math.max(2, Math.floor(canvas.width / box));
       rows = Math.max(2, Math.floor(canvas.height / box));
       // restart game so positions/grid align with new size
@@ -351,8 +477,11 @@
       const intersects = !(headRect.right < foodRect.left || headRect.left > foodRect.right || headRect.bottom < foodRect.top || headRect.top > foodRect.bottom);
       if (intersects) {
         score++;
+        growthPending += 2;
         document.getElementById('score').textContent = score;
         food = randomFood();
+      } else if (growthPending > 0) {
+        growthPending--;
       } else {
         snake.pop();
       }
@@ -366,7 +495,7 @@
           // stop music and play error sound
           stopMusic();
           playErrorSound();
-          alert('Amaiera! 🐍\nPuntuak: ' + score);
+          triggerFailEffectAndShowScore();
           return;
         }
 
